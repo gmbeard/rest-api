@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+docker build -t rest-api-test --file Dockerfile.ci . || exit 1
+docker-compose -f docker-compose.ci.yml up --abort-on-container-exit
+_result=$?
+docker-compose -f docker-compose.ci.yml down --remove-orphans
+
+if [[ $_result -ne 0 ]]
+then
+    echo "Some tests failed!" 1>&2
+    exit 1
+fi

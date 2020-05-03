@@ -1,0 +1,22 @@
+# vim: ft=dockerfile
+FROM node:latest
+
+WORKDIR /app
+
+COPY ./package*.json ./
+
+RUN npm install
+
+COPY ./index.js ./
+COPY ./db*.js ./
+COPY ./src ./src
+COPY ./scripts/run-app ./scripts/run-app
+COPY ./test ./test
+
+RUN chmod 0755 ./scripts/run-app
+
+ENV REST_API_DB_TYPE "mongo"
+ENV REST_API_DB_HOST "database"
+ENV NODE_ENV "production"
+
+ENTRYPOINT [ "./scripts/run-app", "npm", "test" ]

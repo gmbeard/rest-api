@@ -1,0 +1,21 @@
+version: '3.1'
+services:
+    rest-api:
+        image: rest-api:latest
+        ports:
+            - "8080:8080"
+        networks:
+            - backend
+        environment:
+            - REST_API_DB_HOST=database
+        restart: "on-failure"
+        depends_on:
+          - "database"
+    database:
+        image: mongo:latest
+        networks:
+            - backend
+        restart: "on-failure"
+
+networks:
+    backend:
