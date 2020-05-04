@@ -23,10 +23,23 @@ class Handlers {
         if (this._logger && e)
             this._logger.warn(`${e.name || "Error"}: ${e.message}`);
 
-        response.status(statusCode);
+        if (!e) {
+            return response.status(statusCode).end();
+        }
 
-        if (e)
-            response.json({ message: e.message});
+        switch (e.name) {
+            case "NotFoundError":
+                response.status(404);
+                break;
+            case "DbError":
+                response.status(503)
+                    .json({ message: "An internal operation failed" });
+                break;
+            default:
+                response.status(statusCode)
+                    .json({ message: e.message});
+                break;
+        }
 
         response.end(); 
     }

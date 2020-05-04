@@ -1,3 +1,4 @@
+const { NotFoundError, DbError } = require("./errors");
 const { EventEmitter } = require("events");
 const filters = require("./mongo-repository-filter");
 const { MongoClient, ObjectID } = require("mongodb");
@@ -21,6 +22,18 @@ function isRecoverable(err) {
     }
 
     return true;
+}
+
+function tryCreateObjectID(val) {
+    if (!val || typeof val.toHexString === "function")
+        return val;
+
+    try {
+        return ObjectID.createFromHexString(val);
+    }
+    catch (e) {
+        return;
+    }
 }
 
 class MongoRepository extends EventEmitter {
@@ -63,11 +76,15 @@ class MongoRepository extends EventEmitter {
     }
 
     getProduct(id) {
+        const objectId = tryCreateObjectID(id);
+        if (!objectId)
+            return Promise.reject(new NotFoundError(`Invalid id value: ${id}`));
+
         return this._withProducts(products =>
-            products.findOne({ _id: ObjectID.createFromHexString(id) })
-                .then(product => {
+            products.findOne({ _id: objectId })
+                .then(async product => {
                     if (!product)
-                        throw new Error(`Product not found: ${id}`);
+                        throw new NotFoundError(`Product not found: ${id}`);
                     return product;
                 })
         );
@@ -81,6 +98,9 @@ class MongoRepository extends EventEmitter {
         delete item._id;
         return this._withProducts(products => products.insertOne(item))
             .then(result => { 
+                if (result.error)
+                    throw new DbError(result.error.message);
+
                 return { 
                     id: result.insertedId.toHexString(),
                     added: result.ops[0] 
@@ -89,24 +109,40 @@ class MongoRepository extends EventEmitter {
     }
 
     updateProduct(id, item) {
-        if (id && typeof id.toHexString === "function")
-            id = id.toHexString();
+        const objectId = tryCreateObjectID(id);
+        if (!objectId)
+            return Promise.reject(new NotFoundError(`Invalid id value: ${id}`));
 
         delete item._id;
         return this._withProducts(products => 
-            products.findOneAndUpdate(
-                { _id: ObjectID.createFromHexString(id) },
-                { $set: item },
-                { returnOriginal: false }
-            ));
+            products.updateOne(
+                { _id: objectId },
+                { $set: item })
+            .then(result => {
+                if (result.error)
+                    throw new DbError(result.error.message);
+
+                if (!result.modifiedCount)
+                    throw new NotFoundError(`Product not found: ${id}`);
+            }));
     }
 
     deleteProduct(id) {
-        if (id && typeof id.toHexString === "function")
-            id = id.toHexString();
+        const objectId = tryCreateObjectID(id);
+        if (!objectId)
+            return Promise.reject(new NotFoundError(`Invalid id value: ${id}`));
 
         return this._withProducts(products =>
-            products.deleteOne({ _id: ObjectID.createFromHexString(id) }));
+            products.deleteOne({ 
+                _id: objectId
+            })
+            .then(result => {
+                if (result.error)
+                    throw new DbError(result.error.message);
+
+                if (!result.deletedCount)
+                    throw new NotFoundError(`Product not found: ${id}`);
+            }));
     }
 }
 
