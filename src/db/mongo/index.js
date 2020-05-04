@@ -55,7 +55,11 @@ class MongoRepository extends EventEmitter {
         catch (e) {
             if (!isRecoverable(e))
                 this.emit("unrecoverableError", e);
-            throw e;
+
+            if (e.name === "NotFoundError")
+                throw e;
+            else
+                throw new DbError(e.message);
         }
     }
 
@@ -98,9 +102,6 @@ class MongoRepository extends EventEmitter {
         delete item._id;
         return this._withProducts(products => products.insertOne(item))
             .then(result => { 
-                if (result.error)
-                    throw new DbError(result.error.message);
-
                 return { 
                     id: result.insertedId.toHexString(),
                     added: result.ops[0] 
@@ -119,9 +120,6 @@ class MongoRepository extends EventEmitter {
                 { _id: objectId },
                 { $set: item })
             .then(result => {
-                if (result.error)
-                    throw new DbError(result.error.message);
-
                 if (!result.modifiedCount)
                     throw new NotFoundError(`Product not found: ${id}`);
             }));
@@ -137,9 +135,6 @@ class MongoRepository extends EventEmitter {
                 _id: objectId
             })
             .then(result => {
-                if (result.error)
-                    throw new DbError(result.error.message);
-
                 if (!result.deletedCount)
                     throw new NotFoundError(`Product not found: ${id}`);
             }));
