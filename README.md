@@ -43,19 +43,25 @@ You can clean up the data with...
 API
 ---
 
-| PATH                  | Method    | Responses             | Description
-|-------------------    |-----------|---------------        |-----------------
-| `/api/products`       | `GET`     | `200`                 | Fetches the list of available product resources. An optional price filter can be specified (see URL parameters, below)
-| `/api/products/:id`   | `GET`     | `200`, `404`          | Fetches a single product
-| `/api/products`       | `POST`    | `201`, `400`, `401`   | Adds a new product resource
-| `/api/products/:id`   | `PUT`     | `200`, `400`, `401`   | Updates an existing product resource
-| `/api/products/:id`   | `DELETE`  | `200`, `400`, `401`   | Deletes an existing product resource
+| PATH                  | Method    | Responses                 | Description
+|-------------------    |-----------|---------------            |-----------------
+| `/api/products`       | `GET`     | `200`                     | Fetches the list of available product resources. An optional price filter can be specified (see URL parameters, below)
+| `/api/products/:id`   | `GET`     | `200`, `404`              | Fetches a single product
+| `/api/products`       | `POST`    | `201`, `400`, `401`       | Adds a new product resource. Requires a valid authentication token.
+| `/api/products/:id`   | `PUT`     | `200`, `400`, `401`, `404`| Updates an existing product resource. Requires a valid authentication token.
+| `/api/products/:id`   | `DELETE`  | `200`, `400`, `401`, `404`| Deletes an existing product resource. Requires a valid authentication token.
 
 ### URL Parameters
 The `/api/products` resource accepts two optional URL parameters: `priceFrom` and `priceTo`. Either, or both of these can be specified to filter the results by price range. It is the equivalent of `Price >= priceFrom && Price <= priceTo`.
 
 ### Invalid Requests
-The application will return `400 Bad Request` for any resource (where applicable) that cannot be satisfied given the input. This includes providing an invalid schema when adding or updating a product, modifying a non-existent product, or specifying unsupported URL parameters.
+The application will return `400 Bad Request` for any resource (where applicable) that cannot be satisfied given the input. This includes providing an invalid schema when adding or updating a product, or specifying unsupported URL parameters.
+
+### Operations on non-existent resources
+Fetching, modifying, or deleting a product with a non-existent or invalid `:id` value will result in a `404 Not Found` response.
+
+### Internal errors
+If the application encounters an error with its database client connection during adding, updating, or deleting a product, then it will respond with a `503 Service Unavailable` response.
 
 ### Product Schema
 
@@ -68,3 +74,7 @@ The application will return `400 Bad Request` for any resource (where applicable
     }
 
 The application will enforce this schema for inserts and updates.
+
+Authentication
+--------------
+Adding, updating, and deleting products requires that the request contain a valid token in the `X-Token` header. The test data provided contains a single token value of `SECRET_KEY`, which can be used for testing.

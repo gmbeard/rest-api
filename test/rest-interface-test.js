@@ -134,7 +134,7 @@ describe("Rest interface", () => {
             .expect(404);
     });
 
-    it("responds with bad request for modifications to non-existent product", 
+    it("responds with Not Found for modifications to non-existent product", 
         async () => {
             const nonExistentID = "NON_EXISTENT_ID";
             const product = {
@@ -149,14 +149,14 @@ describe("Rest interface", () => {
                     .delete(`/api/products/${nonExistentID}`)
                     .set("Accept", "application/json")
                     .set("X-Token", "SECRET_KEY")
-                    .expect(400),
+                    .expect(404),
 
                 request(createApp())
                     .put(`/api/products/${nonExistentID}`)
                     .set("Content-Type", "application/json")
                     .set("X-Token", "SECRET_KEY")
                     .send(product)
-                    .expect(400),
+                    .expect(404),
             ]);
         });
 
